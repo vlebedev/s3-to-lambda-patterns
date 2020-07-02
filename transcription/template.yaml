@@ -1,11 +1,11 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
-Description: patterns-audio-analyzer
+Description: transcribe-poc-asr-input-output
 
 Parameters:
   InputBucketName:
     Type: String
-    Default: 'patterns-audio-analyzer'
+    Default: 'transcribe-poc-asr-input-output'
 
 Globals:
   Function:
@@ -48,6 +48,7 @@ Resources:
             Effect: Allow
             Action:
             - comprehend:DetectSentiment
+            - comprehend:DetectKeyPhrases
             Resource: '*'            
       Events:
         FileUpload:

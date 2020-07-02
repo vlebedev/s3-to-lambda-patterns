@@ -24,6 +24,10 @@ const s3 = new AWS.S3()
 // See https://docs.aws.amazon.com/transcribe/latest/dg/API_StartTranscriptionJob.html for the most up-to-date list of languages available.
 const DefaultLanguageCode = 'en-US'
 const MediaFormat = 'mp3'
+const Settings = {
+    ShowSpeakerLabels: true,
+    MaxSpeakerLabels: 2,
+}
 
 exports.handler = async (event) => {
   console.log (JSON.stringify(event, null, 2))
@@ -54,6 +58,7 @@ exports.handler = async (event) => {
           Media: { MediaFileUri: mediaUrl },
           MediaFormat,
           TranscriptionJobName,
+          Settings,
           OutputBucketName: record.s3.bucket.name
         }).promise()
         console.log(`Transcribe result: ${JSON.stringify(result, null, 0)}`)

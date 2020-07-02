@@ -32,7 +32,8 @@ const processRecord = async (record) => {
 
   // Extract the transcript
   const originalText = JSON.parse(response.Body.toString('utf-8'))
-  const Text = originalText.results.transcripts[0].transcript
+  const TextOriginal = originalText.results.transcripts[0].transcript
+  const Text = TextOriginal.substring(0, Math.min(5000, TextOriginal.length))
 
   // Do sentiment analysis
   console.log('Transcript: ', Text)
@@ -40,16 +41,23 @@ const processRecord = async (record) => {
     LanguageCode,
     Text
   }).promise()
-  console.log(`Sentiment result ${sentiment}`)
+    console.log(`Sentiment result ${JSON.stringify(sentiment, null, 2)}`)
+    
+    const keyphrases = await comprehend.detectKeyPhrases({
+	LanguageCode,
+	Text
+    }).promise()
+    console.log(`Key Phrases result ${JSON.stringify(keyphrases, null, 2)}`)
 
   // Store in DynamoDB
   const params = {
     TableName: process.env.DDBtable,
     Item: {
       partitionKey: record.s3.object.key,
-      transcript: Text, 
+      transcript: TextOriginal, 
       created: Math.floor(Date.now() / 1000),
       Sentiment: sentiment.Sentiment,
+      KeyPhrases: keyphrases.KeyPhrases,
       Positive: sentiment.SentimentScore.Positive,
       Negative: sentiment.SentimentScore.Negative,
       Neutral: sentiment.SentimentScore.Neutral,

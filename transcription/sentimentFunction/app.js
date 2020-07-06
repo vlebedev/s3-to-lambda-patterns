@@ -13,12 +13,15 @@
   SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-'use strict'
+/* jshint esversion: 8 */
+/* jshint -W033 */
 
-const { processRecord } = require('./processRecord')
+const {
+  processRecord
+} = require('./processRecord')
 
 exports.handler = async (event) => {
-  console.log (JSON.stringify(event, null, 2))
+  console.log(JSON.stringify(event, null, 2))
 
   try {
     await Promise.all(

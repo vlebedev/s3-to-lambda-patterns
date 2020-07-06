@@ -6,7 +6,7 @@ Parameters:
   InputBucketName:
     Type: String
     Default: 'transcribe-poc-asr-input-output'
-
+    
 Globals:
   Function:
     Timeout: 10
@@ -28,8 +28,36 @@ Resources:
         KeyType: HASH
       BillingMode: PAY_PER_REQUEST
 
+  ElasticsearchDomain: 
+    Type: AWS::Elasticsearch::Domain
+    Properties:
+      DomainName: "voice-analytics"
+      ElasticsearchClusterConfig: 
+        InstanceCount: "2"
+      EBSOptions: 
+        EBSEnabled: true
+        Iops: 0
+        VolumeSize: 20
+        VolumeType: "gp2"
+      AccessPolicies: 
+        Version: "2012-10-17"
+        Statement: 
+          - 
+            Sid: "AllowESHTTPFullAccessToEveryone"
+            Effect: "Allow"
+            Principal: 
+              AWS: "*"
+            Action: "es:ESHttp*"
+            Resource:
+              !Sub |-
+                arn:aws:es:${AWS::Region}:${AWS::AccountId}:domain/voice-analytics/*
+      ElasticsearchVersion: "5.5"
+      
   SentimentFunction:
-    Type: AWS::Serverless::Function 
+    Type: AWS::Serverless::Function
+    DependsOn:
+      - ElasticsearchDomain
+      - ResultsDDBtable
     Properties:
       CodeUri: sentimentFunction/
       Handler: app.handler
@@ -37,8 +65,15 @@ Resources:
       MemorySize: 128
       Environment:
         Variables:
-          DDBtable: !Ref ResultsDDBtable      
+          DDBtable: !Ref ResultsDDBtable
+          es_host:
+            Fn::GetAtt: 
+              - ElasticsearchDomain
+              - DomainEndpoint
+          es_region: "${AWS::Region}"
       Policies:
+        - ElasticsearchHttpPostPolicy:
+            DomainName: !Ref ElasticsearchDomain
         - DynamoDBCrudPolicy:
             TableName: !Ref ResultsDDBtable        
         - S3ReadPolicy:
@@ -49,6 +84,7 @@ Resources:
             Action:
             - comprehend:DetectSentiment
             - comprehend:DetectKeyPhrases
+            - comprehend:DetectEntities
             Resource: '*'            
       Events:
         FileUpload:
@@ -94,3 +130,6 @@ Outputs:
   S3BucketName:
     Description: Transcriber S3 bucket
     Value: !Ref InputS3Bucket
+  ElasticsearchUrl:
+    Description: "Elasticsearch Domain Endpoint that you can use to access the CloudTrail logs and analyze them"
+    Value: !GetAtt ElasticsearchDomain.DomainEndpoint
